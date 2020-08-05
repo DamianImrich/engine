@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/g3n/engine/core"
 	"github.com/g3n/engine/gls"
+	"github.com/g3n/engine/util/wasm"
 	"image"
 	_ "image/png"
 	"syscall/js"
@@ -368,14 +369,14 @@ func Init(canvasId string) error {
 		w.canvas = doc.Call("createElement", "WebGlCanvas")
 	} else {
 		w.canvas = doc.Call("getElementById", canvasId)
-		if w.canvas == js.Null() {
+		if wasm.Equal(w.canvas, js.Null()) {
 			panic(fmt.Sprintf("Cannot find canvas with provided id: %s", canvasId))
 		}
 	}
 
 	// Get reference to WebGL context
 	webglCtx := w.canvas.Call("getContext", "webgl2")
-	if webglCtx == js.Undefined() {
+	if wasm.Equal(webglCtx, js.Undefined()) {
 		return fmt.Errorf("Browser doesn't support WebGL2")
 	}
 
@@ -493,10 +494,10 @@ func Init(canvasId string) error {
 
 	w.canvasClick = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if w.cursorLockRequested {
-			if w.canvas.Get("requestPointerLock") != js.Undefined(){
+			if !wasm.Equal(w.canvas.Get("requestPointerLock"), js.Undefined()){
 				w.canvas.Call("requestPointerLock")
 				w.cursorMode = CursorDisabled
-			} else if w.canvas.Get("mozRequestPointerLock") != js.Undefined(){
+			} else if !wasm.Equal(w.canvas.Get("mozRequestPointerLock"), js.Undefined()){
 				w.canvas.Call("mozRequestPointerLock")
 				w.cursorMode = CursorDisabled
 			} else {
@@ -510,7 +511,7 @@ func Init(canvasId string) error {
 				w.pointerLockChange.Release()
 				w.pointerLockChange = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 					doc := js.Global().Get("document")
-					if doc.Get("pointerLockElement") == w.canvas{
+					if wasm.Equal(doc.Get("pointerLockElement"), w.canvas){
 						w.cursorMode = CursorDisabled
 					} else {
 						if w.cursorMode == CursorDisabled{
@@ -531,13 +532,13 @@ func Init(canvasId string) error {
 		}
 
 		if w.fullscreenRequested {
-			if w.canvas.Get("requestFullscreen") != js.Undefined(){
+			if !wasm.Equal(w.canvas.Get("requestFullscreen"), js.Undefined()){
 				w.canvas.Call("requestFullscreen")
 				w.fullscreen = true
 
 				doc.Call("removeEventListener", "fullscreenchange", w.fullscreenChange)
 				w.fullscreenChange = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-					if doc.Get("fullscreenElement") == js.Null(){
+					if wasm.Equal(doc.Get("fullscreenElement"), js.Null()){
 						if w.fullscreen == true {
 							w.fullscreen = false
 							w.SetFullscreen(true)
@@ -709,9 +710,9 @@ func (w *WebGlCanvas) SetCursorMode(mode CursorMode) {
 	case CursorNormal:
 
 		doc := js.Global().Get("document")
-		if doc.Get("exitPointerLock") != js.Undefined(){
+		if !wasm.Equal(doc.Get("exitPointerLock"), js.Undefined()){
 			doc.Call("exitPointerLock")
-		} else if doc.Get("mozExitPointerLock") != js.Undefined(){
+		} else if !wasm.Equal(doc.Get("mozExitPointerLock"),js.Undefined()){
 			doc.Call("mozExitPointerLock")
 		}
 
